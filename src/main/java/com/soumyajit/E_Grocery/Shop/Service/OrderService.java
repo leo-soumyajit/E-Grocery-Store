@@ -4,14 +4,20 @@ import com.soumyajit.E_Grocery.Shop.DTOS.*;
 import com.soumyajit.E_Grocery.Shop.EmailService.SendInvoiceEmailService;
 import com.soumyajit.E_Grocery.Shop.Entities.*;
 import com.soumyajit.E_Grocery.Shop.Exception.ResourceNotFound;
+import com.soumyajit.E_Grocery.Shop.NotificationService.TwilioService;
 import com.soumyajit.E_Grocery.Shop.Repository.CartRepository;
 import com.soumyajit.E_Grocery.Shop.Repository.OrderRepository;
 import com.soumyajit.E_Grocery.Shop.Repository.ProductRepository;
 import com.soumyajit.E_Grocery.Shop.Repository.UserRepository;
 import com.soumyajit.E_Grocery.Shop.config.OrderMapper;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -29,6 +35,10 @@ public class OrderService {
     private final ModelMapper mapper;
     private final SendInvoiceEmailService sendInvoiceEmailService;
     private final OrderMapper orderMapper;
+    @Autowired
+    private TwilioService twilioService;
+    @Autowired
+    private JavaMailSender mailSender;
 
 
     @Transactional // ✅ Add this annotation
@@ -79,7 +89,6 @@ public class OrderService {
         cartRepo.deleteByCustomerId(customerId); // ✅ This requires transaction
     }
 
-
     public void updateStatus(Long orderId, String statusStr) {
         OrderEntity order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFound("Order not found"));
@@ -92,15 +101,32 @@ public class OrderService {
         }
 
         order.setStatus(status);
-        if (status == OrderStatus.ACCEPTED) {
-            order.setAcceptedAt(LocalDateTime.now());
-        }
-        if (status == OrderStatus.DELIVERED) {
-            order.setDeliveredAt(LocalDateTime.now());
+        String customerPhone = String.valueOf(order.getCustomer().getMob_no()); // Should be in E.164 format, e.g., +91xxxxxxxxxx
 
-            // ✅ Convert entity to DTO and send invoice
+        if (status == OrderStatus.ACCEPTED || status == OrderStatus.REJECTED) {
             OrderDTO orderDTO = orderMapper.toDto(order);
-            sendInvoiceEmailService.sendInvoice(orderDTO);
+            sendStatusUpdateEmail(orderDTO, status.name());
+        }
+
+
+        switch (status) {
+            case ACCEPTED -> {
+                order.setAcceptedAt(LocalDateTime.now());
+                twilioService.sendWhatsApp(customerPhone,
+                        "✅ Your order #" + order.getId() + " has been *ACCEPTED*.\nWe will notify you once it is out for delivery.");
+            }
+            case DELIVERED -> {
+                order.setDeliveredAt(LocalDateTime.now());
+                OrderDTO orderDTO = orderMapper.toDto(order);
+                sendInvoiceEmailService.sendInvoice(orderDTO);
+
+                twilioService.sendWhatsApp(customerPhone,
+                        "📦 Good news! Your order #" + order.getId() + " has been *DELIVERED*.\nThank you for shopping with us!");
+            }
+            case REJECTED -> {
+                twilioService.sendWhatsApp(customerPhone,
+                        "❌ We regret to inform you that your order #" + order.getId() + " has been *REJECTED*.\nPlease contact support for details.");
+            }
         }
 
         orderRepo.save(order);
@@ -166,5 +192,92 @@ public class OrderService {
                     .build();
         }).toList();
     }
+
+    //send status update email
+    public void sendStatusUpdateEmail(OrderDTO orderDTO, String status) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom("newssocialmedia2025@gmail.com");
+            helper.setTo(orderDTO.getCustomerEmail());
+
+            String subject = "🧾 Your E-Grocery Order #" + orderDTO.getOrderId() + " has been " + status;
+            helper.setSubject(subject);
+
+            // Build item table with styling
+            StringBuilder itemTable = new StringBuilder();
+            itemTable.append("<table style='width:100%; border-collapse: collapse; font-family: Arial, sans-serif;'>")
+                    .append("<thead style='background-color: #f5f5f5; color: #333;'>")
+                    .append("<tr>")
+                    .append("<th style='padding: 8px; border: 1px solid #ddd;'>Product</th>")
+                    .append("<th style='padding: 8px; border: 1px solid #ddd;'>Quantity</th>")
+                    .append("<th style='padding: 8px; border: 1px solid #ddd;'>Price (₹)</th>")
+                    .append("<th style='padding: 8px; border: 1px solid #ddd;'>Weight</th>")
+                    .append("</tr>")
+                    .append("</thead><tbody>");
+
+            for (OrderItemDTO item : orderDTO.getItems()) {
+                itemTable.append("<tr>")
+                        .append("<td style='padding: 8px; border: 1px solid #ddd;'>").append(item.getProductName()).append("</td>")
+                        .append("<td style='padding: 8px; border: 1px solid #ddd;'>").append(item.getQuantity()).append("</td>")
+                        .append("<td style='padding: 8px; border: 1px solid #ddd;'>₹").append(item.getPrice()).append("</td>")
+                        .append("<td style='padding: 8px; border: 1px solid #ddd;'>").append(item.getWeight()).append("</td>")
+                        .append("</tr>");
+            }
+
+            itemTable.append("</tbody></table>");
+
+            // Color style based on status
+            String statusColor = switch (status.toUpperCase()) {
+                case "ACCEPTED" -> "#28a745"; // green
+                case "REJECTED" -> "#dc3545"; // red
+                case "DELIVERED" -> "#007bff"; // blue
+                default -> "#333";            // dark gray
+            };
+
+            StringBuilder body = new StringBuilder();
+            body.append("<div style='font-family: Arial, sans-serif; color: #333;'>");
+            body.append("<h2 style='color: ").append(statusColor).append(";'>Your Order is ").append(status).append("</h2>");
+
+            body.append("<p>Hi <strong>").append(orderDTO.getCustomerName()).append("</strong>,</p>");
+            body.append("<p>Your order <strong>#").append(orderDTO.getOrderId())
+                    .append("</strong> has been <strong style='color:").append(statusColor).append(";'>").append(status).append("</strong>.</p>");
+
+            body.append("<p><strong>📅 Placed At:</strong> ")
+                    .append(orderDTO.getPlacedAt().toLocalDate())
+                    .append(" at ")
+                    .append(orderDTO.getPlacedAt().toLocalTime().withNano(0))
+                    .append("</p>");
+
+            body.append("<p><strong>💰 Total Amount:</strong> ₹").append(orderDTO.getTotalAmount()).append("</p>");
+            body.append("<br><h4 style='margin-bottom: 5px;'>🛒 Items Ordered:</h4>").append(itemTable);
+
+            if ("REJECTED".equalsIgnoreCase(status)) {
+                body.append("<br><p style='color:red;'><strong>❗ Reason:</strong> Unfortunately, your order was rejected. Please contact support for more details.</p>");
+            }
+
+            body.append("<br><div style='padding:10px; background-color:#f0f8ff; border-left: 4px solid #25D366;'>")
+                    .append("<p>📲 Want real-time updates on <strong>WhatsApp</strong>?<br>")
+                    .append("Just send <code style='color: #333;'>join exclaimed-call</code> to <strong>+1 (415) 523-8886</strong>.</p>")
+                    .append("</div>");
+
+            body.append("<p>🙏 Thanks for shopping with <strong style='color:#28a745;'>E-Grocery</strong>!</p>");
+            body.append("</div>");
+
+            helper.setText(body.toString(), true); // Send as HTML
+            mailSender.send(message);
+
+        } catch (MessagingException e) {
+            e.printStackTrace();
+            // Optional: logging
+        }
+    }
+
+
+
+
+
+
 
 }

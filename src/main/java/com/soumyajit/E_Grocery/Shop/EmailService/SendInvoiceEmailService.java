@@ -186,17 +186,57 @@ public class SendInvoiceEmailService {
         }
     }
 
-    private void sendEmailWithAttachment(String to, String subject, String body, byte[] attachmentBytes) throws MessagingException {
+    private void sendEmailWithAttachment(String to, String subject, String plainBody, byte[] attachmentBytes) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
         helper.setFrom("newssocialmedia2025@gmail.com");
         helper.setTo(to);
         helper.setSubject(subject);
-        helper.setText(body);
+
+        String htmlBody = """
+        <html>
+        <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
+            <div style="max-width: 600px; margin: auto; background: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <div style="text-align: center;">
+                    <img src="https://res.cloudinary.com/dek6gftbb/image/upload/v1751108759/grocery-store-logo-template-in-flat-design-style-vector-removebg-preview_hcbtaz.png" width="80" alt="E-Grocery Logo">
+                    <h2 style="color: #4CAF50;">🧾 E-Grocery Store</h2>
+                </div>
+
+                <p style="font-size: 16px;">Hi <strong>%s</strong>,</p>
+                <p style="font-size: 15px;">Thank you for shopping with us! Please find attached the invoice for your order <strong># %s</strong>.</p>
+
+                <div style="background-color: #f1f1f1; padding: 10px 15px; border-radius: 5px; margin: 20px 0;">
+                    <p><strong>📅 Placed At:</strong> %s</p>
+                    <p><strong>📄 Total Amount:</strong> ₹%s</p>
+                </div>
+
+                <p style="font-size: 14px; margin-bottom: 30px;">
+                    If you have any questions, feel free to reply to this email or contact our support team.
+                </p>
+
+                <div style="text-align: center;">
+                    <p style="font-size: 13px; color: #888;">📲 Want order updates on WhatsApp?<br>
+                    Send <code style="background-color:#eee; padding: 2px 5px; border-radius: 3px;">join exclaimed-call</code> to <strong>+1 (415) 523-8886</strong></p>
+                </div>
+
+                <p style="text-align: center; font-size: 12px; color: #aaa;">🙏 Thank you for shopping with <strong>E-Grocery Store</strong>.</p>
+            </div>
+        </body>
+        </html>
+        """.formatted(
+                plainBody.split(",")[0].replace("Dear ", ""), // Extract name from plainBody
+                plainBody.replaceAll("\\D+", ""), // Extract order number from subject
+                java.time.LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy")),
+                "Check PDF" // Optional - you can pass orderDTO.getTotalAmount() instead
+        );
+
+        helper.setText(htmlBody, true); // true for HTML body
 
         InputStreamSource attachment = new ByteArrayResource(attachmentBytes);
         helper.addAttachment("invoice.pdf", attachment);
 
         mailSender.send(message);
     }
+
 }

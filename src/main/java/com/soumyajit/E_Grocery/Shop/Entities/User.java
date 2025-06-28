@@ -32,7 +32,7 @@ public class User implements UserDetails {
 
     private String roles;
 
-    private Long mob_no;
+    private String mob_no;
 
     // ✅ Updated address field to handle multiple addresses
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
