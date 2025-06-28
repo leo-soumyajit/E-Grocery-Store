@@ -1,5 +1,6 @@
 package com.soumyajit.E_Grocery.Shop.EmailService;
 
+import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.kernel.pdf.PdfDocument;
@@ -7,11 +8,13 @@ import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.*;
 import com.itextpdf.layout.borders.SolidBorder;
 import com.itextpdf.layout.borders.Border;
+import com.itextpdf.layout.properties.HorizontalAlignment;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import com.soumyajit.E_Grocery.Shop.DTOS.OrderDTO;
 import com.soumyajit.E_Grocery.Shop.DTOS.OrderItemDTO;
 
+import com.soumyajit.E_Grocery.Shop.Entities.Address;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +23,8 @@ import org.springframework.core.io.InputStreamSource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import java.time.format.DateTimeFormatter;
+
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
@@ -30,13 +35,24 @@ public class SendInvoiceEmailService {
     @Autowired
     private JavaMailSender mailSender;
 
+
     public void sendInvoice(OrderDTO orderDTO) {
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
+        String formattedDate = orderDTO.getPlacedAt().format(formatter);
+
+
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
 
             PdfWriter writer = new PdfWriter(out);
             PdfDocument pdf = new PdfDocument(writer);
             Document document = new Document(pdf);
+
+            // 🛍️ Logo
+            String imageUrl = "https://res.cloudinary.com/dek6gftbb/image/upload/v1751108759/grocery-store-logo-template-in-flat-design-style-vector-removebg-preview_hcbtaz.png";
+            Image logo = new Image(ImageDataFactory.create(imageUrl)).scaleToFit(100, 100).setHorizontalAlignment(HorizontalAlignment.CENTER);
+            document.add(logo);
 
             // 🏪 Header
             Paragraph header = new Paragraph("🛒 E-Grocery Store")
@@ -56,10 +72,56 @@ public class SendInvoiceEmailService {
                     .useAllAvailableWidth()
                     .setMarginBottom(10);
 
-            infoTable.addCell(new Cell().add(new Paragraph("👤 Customer Name: " + orderDTO.getCustomerName())).setBorder(Border.NO_BORDER));
-            infoTable.addCell(new Cell().add(new Paragraph("📦 Order ID: " + orderDTO.getOrderId())).setBorder(Border.NO_BORDER));
-            infoTable.addCell(new Cell().add(new Paragraph("✉️ Email: " + orderDTO.getCustomerEmail())).setBorder(Border.NO_BORDER));
-            infoTable.addCell(new Cell().add(new Paragraph("🗓️ Placed At: " + orderDTO.getPlacedAt())).setBorder(Border.NO_BORDER));
+//            infoTable.addCell(new Cell().add(new Paragraph("👤 Customer Name: " + orderDTO.getCustomerName())).setBorder(Border.NO_BORDER));
+//            infoTable.addCell(new Cell().add(new Paragraph("📦 Order ID: " + orderDTO.getOrderId())).setBorder(Border.NO_BORDER));
+//            infoTable.addCell(new Cell().add(new Paragraph("✉️ Email: " + orderDTO.getCustomerEmail())).setBorder(Border.NO_BORDER));
+//            infoTable.addCell(new Cell().add(new Paragraph("🗓️ Placed At: " + orderDTO.getPlacedAt())).setBorder(Border.NO_BORDER));
+
+            infoTable.addCell(new Cell().add(new Paragraph()
+                            .add(new Text("👤 Customer Name: ").setBold())
+                            .add(orderDTO.getCustomerName()))
+                    .setBorder(Border.NO_BORDER));
+
+            infoTable.addCell(new Cell().add(new Paragraph()
+                            .add(new Text("📦 Order ID: ").setBold())
+                            .add(String.valueOf(orderDTO.getOrderId())))
+                    .setBorder(Border.NO_BORDER));
+
+            infoTable.addCell(new Cell().add(new Paragraph()
+                            .add(new Text("✉️ Email: ").setBold())
+                            .add(orderDTO.getCustomerEmail()))
+                    .setBorder(Border.NO_BORDER));
+
+            infoTable.addCell(new Cell().add(new Paragraph()
+                            .add(new Text("🗓️ Placed At: ").setBold())
+                            .add(formattedDate))
+                    .setBorder(Border.NO_BORDER));
+
+
+
+
+            if (orderDTO.getAddresses() != null && !orderDTO.getAddresses().isEmpty()) {
+                StringBuilder addressBuilder = new StringBuilder();
+                for (Address addr : orderDTO.getAddresses()) {
+                    addressBuilder.append(addr.getHouseNumber()).append(", ")
+                            .append(addr.getStreet()).append(", ")
+                            .append(addr.getCity()).append(", ")
+                            .append(addr.getState()).append(", ")
+                            .append(addr.getPinCode()).append(", ")
+                            .append(addr.getCountry()).append("\n");
+                }
+
+                Paragraph addressPara = new Paragraph()
+                        .add(new Text("🏠 Delivery Address:\n").setBold())  // Bold label
+                        .add(addressBuilder.toString().trim());            // Regular address
+
+                infoTable.addCell(new Cell(1, 2)
+                        .add(addressPara)
+                        .setBorder(Border.NO_BORDER));
+
+            }
+
+
             document.add(infoTable);
 
             // 📦 Order Details Heading
@@ -83,7 +145,7 @@ public class SendInvoiceEmailService {
 
             BigDecimal grandTotal = BigDecimal.ZERO;
             for (OrderItemDTO item : orderDTO.getItems()) {
-                BigDecimal subtotal = item.getPrice(); // You can multiply with quantity if needed
+                BigDecimal subtotal = item.getPrice(); // Could be item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()))
                 grandTotal = grandTotal.add(subtotal);
 
                 table.addCell(new Cell().add(new Paragraph(item.getProductName())));
@@ -100,7 +162,13 @@ public class SendInvoiceEmailService {
                     .setBold()
                     .setTextAlignment(TextAlignment.RIGHT));
 
-            // 🙏 Footer
+            // 📝 Footer Note
+            document.add(new Paragraph("\nThis is an autogenerated invoice and does not require any signature.\nFor any queries, contact the shop owner or email us at xyz@gmail.com.")
+                    .setFontSize(9)
+                    .setTextAlignment(TextAlignment.CENTER)
+                    .setMarginTop(30));
+
+            // 🙏 Thanks Footer
             document.add(new Paragraph("\n🙏 Thank you for shopping with E-Grocery Store!")
                     .setTextAlignment(TextAlignment.CENTER)
                     .setFontSize(10));

@@ -13,7 +13,9 @@ import java.util.stream.Collectors;
 public class OrderMapper {
 
     public OrderDTO toDto(OrderEntity order) {
-        List<OrderItemDTO> itemDTOs = order.getItems().stream().map(this::toDto).collect(Collectors.toList());
+        List<OrderItemDTO> itemDTOs = order.getItems().stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
 
         return OrderDTO.builder()
                 .orderId(order.getId())
@@ -23,8 +25,10 @@ public class OrderMapper {
                 .placedAt(order.getPlacedAt())
                 .totalAmount(order.getTotalAmount())
                 .items(itemDTOs)
+                .addresses(order.getCustomer().getAddresses()) // ✅ Add this line
                 .build();
     }
+
 
     public OrderItemDTO toDto(OrderItem item) {
         return OrderItemDTO.builder()
