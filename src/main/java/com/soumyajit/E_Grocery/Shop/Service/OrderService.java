@@ -160,6 +160,7 @@ public class OrderService {
 
     public List<AdminOrderResponseDTO> getAllOrders() {
         return orderRepo.findAll().stream().map(order -> {
+            // Map Order Items
             List<OrderItemDTO> itemDTOs = order.getItems().stream().map(item ->
                     OrderItemDTO.builder()
                             .productName(item.getProduct().getName())
@@ -169,32 +170,43 @@ public class OrderService {
                             .build()
             ).toList();
 
-            List<AddressDTO> addressDTOs = order.getCustomer().getAddresses().stream().map(address ->
-                    AddressDTO.builder()
-                            .houseNumber(address.getHouseNumber())
-                            .street(address.getStreet())
-                            .city(address.getCity())
-                            .state(address.getState())
-                            .pinCode(address.getPinCode())
-                            .country(address.getCountry())
-                            .build()
-            ).toList();
+            // ✅ Find the active address only
+            Address activeAddress = order.getCustomer().getAddresses().stream()
+                    .filter(address -> Boolean.TRUE.equals(address.getIsActive()))
+                    .findFirst()
+                    .orElse(null); // Optional: handle null if no active address set
 
+            AddressDTO activeAddressDTO = null;
+            if (activeAddress != null) {
+                activeAddressDTO = AddressDTO.builder()
+                        .houseNumber(activeAddress.getHouseNumber())
+                        .street(activeAddress.getStreet())
+                        .city(activeAddress.getCity())
+                        .district(activeAddress.getDistrict())
+                        .state(activeAddress.getState())
+                        .pinCode(activeAddress.getPinCode())
+                        .country(activeAddress.getCountry())
+                        .build();
+            }
+
+            // Build and return the DTO
             return AdminOrderResponseDTO.builder()
                     .orderId(order.getId())
+                    .mob_no(order.getCustomer().getMob_no())
                     .customerName(order.getCustomer().getName())
                     .customerEmail(order.getCustomer().getEmail())
                     .status(order.getStatus().name())
                     .totalAmount(order.getTotalAmount())
                     .placedAt(order.getPlacedAt())
                     .items(itemDTOs)
-                    .addresses(addressDTOs) // ✅ Include address here
+                    .addresses(activeAddressDTO)
                     .build();
         }).toList();
     }
 
+
     //send status update email
-    public void sendStatusUpdateEmail(OrderDTO orderDTO, String status) {
+    private void sendStatusUpdateEmail(OrderDTO orderDTO, String status) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");

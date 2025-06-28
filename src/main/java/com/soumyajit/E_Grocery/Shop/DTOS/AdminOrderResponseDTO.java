@@ -16,10 +16,11 @@ import java.util.List;
 public class AdminOrderResponseDTO {
     private Long orderId;
     private String customerName;
+    private String mob_no;
     private String customerEmail;
     private String status;
     private BigDecimal totalAmount;
     private LocalDateTime placedAt;
     private List<OrderItemDTO> items;
-    private List<AddressDTO> addresses;
+    private AddressDTO addresses;
 }

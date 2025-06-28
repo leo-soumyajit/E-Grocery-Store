@@ -1,9 +1,6 @@
 package com.soumyajit.E_Grocery.Shop.Entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,5 +26,8 @@ public class Product {
     private String unitLabel;          // e.g., "gm", "kg", "ltr"
 
     private String imageUrl;           // Product image URL
+    @Column(nullable = false)
+    private boolean active = true;
+
 }
 

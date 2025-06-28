@@ -1,9 +1,6 @@
 package com.soumyajit.E_Grocery.Shop.Entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
 
 @Getter
@@ -20,7 +17,16 @@ public class Address {
     private String houseNumber;
     private String street;
     private String city;
+    private String district;
     private String state;
     private String pinCode;
     private String country;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @Column(name = "is_active")
+    private Boolean isActive;
+
+
 }

@@ -106,6 +106,7 @@ public class SendInvoiceEmailService {
                     addressBuilder.append(addr.getHouseNumber()).append(", ")
                             .append(addr.getStreet()).append(", ")
                             .append(addr.getCity()).append(", ")
+                            .append(addr.getDistrict()).append(", ")
                             .append(addr.getState()).append(", ")
                             .append(addr.getPinCode()).append(", ")
                             .append(addr.getCountry()).append("\n");

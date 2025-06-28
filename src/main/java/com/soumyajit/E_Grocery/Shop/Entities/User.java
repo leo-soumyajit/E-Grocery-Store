@@ -35,9 +35,9 @@ public class User implements UserDetails {
     private String mob_no;
 
     // ✅ Updated address field to handle multiple addresses
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id") // Adds a foreign key in the address table
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Address> addresses;
+
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
