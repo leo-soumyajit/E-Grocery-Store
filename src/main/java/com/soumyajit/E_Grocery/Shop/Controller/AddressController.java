@@ -9,13 +9,16 @@ import com.soumyajit.E_Grocery.Shop.Repository.AddressRepository;
 import com.soumyajit.E_Grocery.Shop.Repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/address")
@@ -134,6 +137,21 @@ public class AddressController {
         return ResponseEntity.ok(new ApiResponse<>("Address set as active for delivery"));
     }
 
+
+    @GetMapping("/me")
+    public ResponseEntity<List<Address>> getMyAddresses() {
+        // Extract username/email from security context
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        // Fetch user
+        User user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+
+        // Get all addresses of this user
+        List<Address> addresses = addressRepo.findByUserId(user.getId());
+
+        return ResponseEntity.ok(addresses);
+    }
 
 
 

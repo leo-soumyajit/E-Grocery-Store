@@ -50,7 +50,8 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/products").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
-                        .requestMatchers("/api/orders/all").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET,"/api/orders/all").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET,"/api/orders/admin/active").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/orders/*/status").hasRole("ADMIN")
 
                         // ===== Authenticated User Routes =====

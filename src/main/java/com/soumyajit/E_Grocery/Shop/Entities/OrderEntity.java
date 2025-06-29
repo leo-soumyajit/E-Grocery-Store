@@ -30,4 +30,11 @@ public class OrderEntity {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private List<OrderItem> items;
+    @Embedded
+    private EmbeddedAddress deliveryAddress;
+    private LocalDateTime cancelledAt;
+    @Column(name = "cancellation_reason")
+    private String cancellationReason;
+
+
 }

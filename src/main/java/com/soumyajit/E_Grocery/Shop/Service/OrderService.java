@@ -21,9 +21,12 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,7 +44,7 @@ public class OrderService {
     private JavaMailSender mailSender;
 
 
-    @Transactional // ✅ Add this annotation
+    @Transactional
     public void placeOrder(Long customerId) {
         List<CartItem> cartItems = cartRepo.findByCustomerId(customerId);
         if (cartItems.isEmpty()) {
@@ -50,6 +53,23 @@ public class OrderService {
 
         User customer = userRepo.findById(customerId)
                 .orElseThrow(() -> new ResourceNotFound("User not found"));
+
+        // ✅ Extract active address
+        Address activeAddress = customer.getAddresses().stream()
+                .filter(Address::getIsActive)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("No active address found"));
+
+        // ✅ Convert to embeddable form
+        EmbeddedAddress deliveryAddress = EmbeddedAddress.builder()
+                .houseNumber(activeAddress.getHouseNumber())
+                .street(activeAddress.getStreet())
+                .city(activeAddress.getCity())
+                .district(activeAddress.getDistrict())
+                .state(activeAddress.getState())
+                .pinCode(activeAddress.getPinCode())
+                .country(activeAddress.getCountry())
+                .build();
 
         BigDecimal totalAmount = BigDecimal.ZERO;
         List<OrderItem> orderItems = new ArrayList<>();
@@ -81,13 +101,34 @@ public class OrderService {
                 .totalAmount(totalAmount)
                 .placedAt(LocalDateTime.now())
                 .items(orderItems)
+                .deliveryAddress(deliveryAddress) // ✅ Set delivery address
                 .build();
 
         orderItems.forEach(item -> item.setOrder(order));
-
         orderRepo.save(order);
-        cartRepo.deleteByCustomerId(customerId); // ✅ This requires transaction
+        cartRepo.deleteByCustomerId(customerId);
+
+
+
+        List<OrderItemDTO> itemDTOs = order.getItems().stream()
+                .map(item -> OrderItemDTO.builder()
+                        .productName(item.getProduct().getName())
+                        .quantity(item.getQuantity())
+                        .price(item.getPrice())
+                        .weight(item.getWeight())
+                        .build()
+                ).collect(Collectors.toList());
+
+        sendOrderPlacedEmail(
+                customer.getEmail(),
+                customer.getName(),
+                order.getId(),
+                itemDTOs
+        );
+
     }
+
+
 
     public void updateStatus(Long orderId, String statusStr) {
         OrderEntity order = orderRepo.findById(orderId)
@@ -160,7 +201,7 @@ public class OrderService {
 
     public List<AdminOrderResponseDTO> getAllOrders() {
         return orderRepo.findAll().stream().map(order -> {
-            // Map Order Items
+            // Map order items to DTO
             List<OrderItemDTO> itemDTOs = order.getItems().stream().map(item ->
                     OrderItemDTO.builder()
                             .productName(item.getProduct().getName())
@@ -170,39 +211,230 @@ public class OrderService {
                             .build()
             ).toList();
 
-            // ✅ Find the active address only
-            Address activeAddress = order.getCustomer().getAddresses().stream()
-                    .filter(address -> Boolean.TRUE.equals(address.getIsActive()))
-                    .findFirst()
-                    .orElse(null); // Optional: handle null if no active address set
-
-            AddressDTO activeAddressDTO = null;
-            if (activeAddress != null) {
-                activeAddressDTO = AddressDTO.builder()
-                        .houseNumber(activeAddress.getHouseNumber())
-                        .street(activeAddress.getStreet())
-                        .city(activeAddress.getCity())
-                        .district(activeAddress.getDistrict())
-                        .state(activeAddress.getState())
-                        .pinCode(activeAddress.getPinCode())
-                        .country(activeAddress.getCountry())
+            // Map embedded delivery address to AddressDTO (handle null safely)
+            AddressDTO addressDTO = null;
+            if (order.getDeliveryAddress() != null) {
+                EmbeddedAddress embedded = order.getDeliveryAddress();
+                addressDTO = AddressDTO.builder()
+                        .houseNumber(embedded.getHouseNumber())
+                        .street(embedded.getStreet())
+                        .city(embedded.getCity())
+                        .district(embedded.getDistrict())
+                        .state(embedded.getState())
+                        .pinCode(embedded.getPinCode())
+                        .country(embedded.getCountry())
                         .build();
             }
 
-            // Build and return the DTO
+            // Build and return response DTO
             return AdminOrderResponseDTO.builder()
                     .orderId(order.getId())
-                    .mob_no(order.getCustomer().getMob_no())
                     .customerName(order.getCustomer().getName())
                     .customerEmail(order.getCustomer().getEmail())
+                    .mob_no(order.getCustomer().getMob_no())
                     .status(order.getStatus().name())
                     .totalAmount(order.getTotalAmount())
                     .placedAt(order.getPlacedAt())
                     .items(itemDTOs)
-                    .addresses(activeAddressDTO)
+                    .addresses(addressDTO)
                     .build();
         }).toList();
     }
+
+
+
+    public List<AdminOrderResponseDTO> getActiveOrders() {
+        return orderRepo.findAllByStatusInOrderByPlacedAtDesc(List.of(OrderStatus.PENDING, OrderStatus.ACCEPTED))
+                .stream().map(order -> {
+                    List<OrderItemDTO> itemDTOs = order.getItems().stream().map(item ->
+                            OrderItemDTO.builder()
+                                    .productName(item.getProduct().getName())
+                                    .quantity(item.getQuantity())
+                                    .price(item.getPrice())
+                                    .weight(item.getWeight())
+                                    .build()
+                    ).toList();
+
+                    AddressDTO addressDTO = null;
+                    if (order.getDeliveryAddress() != null) {
+                        EmbeddedAddress embedded = order.getDeliveryAddress();
+                        addressDTO = AddressDTO.builder()
+                                .houseNumber(embedded.getHouseNumber())
+                                .street(embedded.getStreet())
+                                .city(embedded.getCity())
+                                .district(embedded.getDistrict())
+                                .state(embedded.getState())
+                                .pinCode(embedded.getPinCode())
+                                .country(embedded.getCountry())
+                                .build();
+                    }
+
+                    return AdminOrderResponseDTO.builder()
+                            .orderId(order.getId())
+                            .customerName(order.getCustomer().getName())
+                            .customerEmail(order.getCustomer().getEmail())
+                            .mob_no(order.getCustomer().getMob_no())
+                            .status(order.getStatus().name())
+                            .totalAmount(order.getTotalAmount())
+                            .placedAt(order.getPlacedAt())
+                            .items(itemDTOs)
+                            .addresses(addressDTO)
+                            .build();
+                }).toList();
+    }
+
+
+
+
+    @Transactional
+    public void cancelOrder(Long orderId, String email, String reason) throws AccessDeniedException {
+        OrderEntity order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFound("Order not found"));
+
+        if (!order.getCustomer().getEmail().equals(email)) {
+            throw new AccessDeniedException("You cannot cancel someone else's order");
+        }
+
+        if (order.getStatus() == OrderStatus.CANCELLED || order.getStatus() == OrderStatus.DELIVERED) {
+            throw new IllegalStateException("Order cannot be cancelled");
+        }
+
+        if (order.getPlacedAt().plusMinutes(15).isBefore(LocalDateTime.now())) {
+            throw new IllegalStateException("Order cancellation window has expired");
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+        order.setCancelledAt(LocalDateTime.now());
+
+        if (reason != null && !reason.trim().isEmpty()) {
+            order.setCancellationReason(reason.trim());
+        }
+
+        orderRepo.save(order);
+        sendCancellationEmail(
+                order.getCustomer().getEmail(),
+                order.getCustomer().getName(),
+                order.getId(),
+                order.getTotalAmount(),
+                LocalDateTime.now(),
+                reason
+        );
+    }
+
+
+
+    public void sendCancellationEmail(String toEmail, String customerName, Long orderId, BigDecimal totalAmount, LocalDateTime cancelledAt, String reason) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(toEmail);
+            helper.setSubject("❌ Your Order #" + orderId + " has been Cancelled");
+
+            String formattedDate = cancelledAt.format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"));
+
+            String html = """
+            <html>
+            <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
+                <div style="max-width: 600px; margin: auto; background: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <div style="text-align: center;">
+                        <img src="https://res.cloudinary.com/dek6gftbb/image/upload/v1751108759/grocery-store-logo-template-in-flat-design-style-vector-removebg-preview_hcbtaz.png" width="80" alt="E-Grocery Logo">
+                        <h2 style="color: #ff4c4c;">❌ Order Cancelled</h2>
+                    </div>
+
+                    <p>Hi <strong>%s</strong>,</p>
+                    <p>Your order <strong>#%s</strong> has been cancelled successfully.</p>
+
+                    <div style="background-color: #fcebea; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <p><strong>🕒 Cancelled At:</strong> %s</p>
+                        <p><strong>💰 Order Total:</strong> ₹%s</p>
+                        <p><strong>📋 Reason:</strong> %s</p>
+                    </div>
+
+                    <p>If this was a mistake or you have questions, contact our support team.</p>
+
+                    <p style="text-align: center; font-size: 12px; color: #aaa;">Thank you for using <strong>E-Grocery Store</strong>.</p>
+                </div>
+            </body>
+            </html>
+            """.formatted(customerName, orderId, formattedDate, totalAmount, reason);
+
+            helper.setText(html, true);
+            helper.setFrom("newssocialmedia2025@gmail.com");
+
+            mailSender.send(message);
+
+        } catch (Exception e) {
+            e.printStackTrace(); // Log or handle error
+        }
+    }
+
+
+
+
+    private void sendOrderPlacedEmail(String to, String name, Long orderId, List<OrderItemDTO> items) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+            helper.setFrom("newssocialmedia2025@gmail.com");
+            helper.setTo(to);
+            helper.setSubject("🛒 Order Placed Successfully — Order #" + orderId);
+
+            StringBuilder tableBuilder = new StringBuilder();
+
+            tableBuilder.append("""
+            <table border='1' cellpadding='8' cellspacing='0' style='border-collapse: collapse; font-family: Arial, sans-serif; width: 100%;'>
+                <thead style='background-color: #f2f2f2;'>
+                    <tr>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Price (₹)</th>
+                        <th>Weight</th>
+                    </tr>
+                </thead>
+                <tbody>
+        """);
+
+            for (OrderItemDTO item : items) {
+                tableBuilder.append(String.format("""
+                <tr>
+                    <td>%s</td>
+                    <td>%d</td>
+                    <td>₹%.2f</td>
+                    <td>%s</td>
+                </tr>
+            """, item.getProductName(), item.getQuantity(), item.getPrice(), item.getWeight()));
+            }
+
+            tableBuilder.append("</tbody></table>");
+
+            String body = String.format("""
+            <html>
+            <body style="font-family: Arial, sans-serif;">
+                <h2 style="color: green;">Hi %s,</h2>
+                <p>Your order <strong>#%d</strong> has been <strong>successfully placed</strong> ✅.</p>
+                <p>🕒 Please wait while the shop owner reviews and accepts your order.</p>
+                <p>❗ You may cancel this order within <strong>15 minutes</strong> from the time it was placed.</p>
+                <h3>🛒 Items Ordered:</h3>
+                %s
+                <br/>
+                <p>Thanks for shopping with <strong>E-Grocery Store</strong>!</p>
+            </body>
+            </html>
+        """, name, orderId, tableBuilder.toString());
+
+            helper.setText(body, true);
+            mailSender.send(message);
+
+        } catch (MessagingException e) {
+            e.printStackTrace();
+            // log or handle error
+        }
+    }
+
+
+
 
 
     //send status update email

@@ -15,6 +15,7 @@ import com.soumyajit.E_Grocery.Shop.DTOS.OrderDTO;
 import com.soumyajit.E_Grocery.Shop.DTOS.OrderItemDTO;
 
 import com.soumyajit.E_Grocery.Shop.Entities.Address;
+import com.soumyajit.E_Grocery.Shop.Entities.EmbeddedAddress;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -100,27 +101,27 @@ public class SendInvoiceEmailService {
 
 
 
-            if (orderDTO.getAddresses() != null && !orderDTO.getAddresses().isEmpty()) {
-                StringBuilder addressBuilder = new StringBuilder();
-                for (Address addr : orderDTO.getAddresses()) {
-                    addressBuilder.append(addr.getHouseNumber()).append(", ")
-                            .append(addr.getStreet()).append(", ")
-                            .append(addr.getCity()).append(", ")
-                            .append(addr.getDistrict()).append(", ")
-                            .append(addr.getState()).append(", ")
-                            .append(addr.getPinCode()).append(", ")
-                            .append(addr.getCountry()).append("\n");
-                }
+            EmbeddedAddress addr = orderDTO.getDeliveryAddress();
+            if (addr != null) {
+                String fullAddress = String.join(", ",
+                        addr.getHouseNumber(),
+                        addr.getStreet(),
+                        addr.getCity(),
+                        addr.getDistrict(),
+                        addr.getState(),
+                        addr.getPinCode(),
+                        addr.getCountry()
+                );
 
                 Paragraph addressPara = new Paragraph()
-                        .add(new Text("🏠 Delivery Address:\n").setBold())  // Bold label
-                        .add(addressBuilder.toString().trim());            // Regular address
+                        .add(new Text("🏠 Delivery Address:\n").setBold())
+                        .add(fullAddress);
 
                 infoTable.addCell(new Cell(1, 2)
                         .add(addressPara)
                         .setBorder(Border.NO_BORDER));
-
             }
+
 
 
             document.add(infoTable);

@@ -25,8 +25,9 @@ public class OrderMapper {
                 .placedAt(order.getPlacedAt())
                 .totalAmount(order.getTotalAmount())
                 .items(itemDTOs)
-                .addresses(order.getCustomer().getAddresses()) // ✅ Add this line
+                .deliveryAddress(order.getDeliveryAddress()) // ✅ Corrected
                 .build();
+
     }
 
 

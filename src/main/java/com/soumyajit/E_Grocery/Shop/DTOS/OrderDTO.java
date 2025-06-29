@@ -1,6 +1,7 @@
 package com.soumyajit.E_Grocery.Shop.DTOS;
 
 import com.soumyajit.E_Grocery.Shop.Entities.Address;
+import com.soumyajit.E_Grocery.Shop.Entities.EmbeddedAddress;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
@@ -23,7 +24,8 @@ public class OrderDTO {
     private BigDecimal totalAmount;
     private LocalDateTime placedAt;
     private List<OrderItemDTO> items;
-    private List<Address> addresses;
+//    private List<Address> addresses;
+    private EmbeddedAddress deliveryAddress;
 
 
 
