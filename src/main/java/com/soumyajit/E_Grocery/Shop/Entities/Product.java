@@ -1,5 +1,6 @@
 package com.soumyajit.E_Grocery.Shop.Entities;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -38,6 +39,7 @@ public class Product {
     private BigDecimal discountedPrice;
 
     @Column(name = "discount_expires_at")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime discountExpiresAt;
 
 

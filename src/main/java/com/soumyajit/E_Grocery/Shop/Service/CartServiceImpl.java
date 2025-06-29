@@ -14,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,10 +31,8 @@ public class CartServiceImpl implements CartService {
         Product product = productRepository.findById(dto.getProductId())
                 .orElseThrow(() -> new ResourceNotFound("Product not found"));
 
-        // ✅ Get the logged-in user from SecurityContext
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        // ✅ Check if cart item already exists
         CartItem cartItem = cartRepository.findByCustomerIdAndProductId(user.getId(), product.getId())
                 .orElse(new CartItem());
 
@@ -43,15 +42,19 @@ public class CartServiceImpl implements CartService {
         int updatedQuantity = cartItem.getQuantity() + dto.getQuantity();
         cartItem.setQuantity(updatedQuantity);
 
-        // ✅ Multiply unit price and quantity using BigDecimal
-        BigDecimal totalPrice = product.getUnitPrice().multiply(BigDecimal.valueOf(updatedQuantity));
-        BigDecimal totalQuantity = product.getUnitQuantity().multiply(BigDecimal.valueOf(updatedQuantity));
+        // ✅ Determine effective unit price
+        BigDecimal effectivePrice = getEffectivePrice(product);
 
-        cartItem.setTotalPrice(totalPrice);
-        cartItem.setTotalQuantity(totalQuantity);
+        // ✅ Calculate totals
+        cartItem.setTotalPrice(effectivePrice.multiply(BigDecimal.valueOf(updatedQuantity)));
+        cartItem.setTotalQuantity(product.getUnitQuantity().multiply(BigDecimal.valueOf(updatedQuantity)));
 
-        return modelMapper.map(cartRepository.save(cartItem), CartItemDTO.class);
+        CartItem savedItem = cartRepository.save(cartItem);
+        CartItemDTO response = modelMapper.map(savedItem, CartItemDTO.class);
+        response.setUnitPrice(effectivePrice); // show price used
+        return response;
     }
+
 
 
 
@@ -76,4 +79,16 @@ public class CartServiceImpl implements CartService {
     public void removeFromCart(Long userId, Long productId) {
         cartRepository.deleteByUserIdAndProductId(userId, productId);
     }
+
+    private BigDecimal getEffectivePrice(Product product) {
+        if (product.getDiscountedPrice() != null &&
+                product.getDiscountExpiresAt() != null &&
+                product.getDiscountExpiresAt().isAfter(LocalDateTime.now())) {
+            return product.getDiscountedPrice();
+        }
+        return product.getUnitPrice();
+    }
+
+
+
 }

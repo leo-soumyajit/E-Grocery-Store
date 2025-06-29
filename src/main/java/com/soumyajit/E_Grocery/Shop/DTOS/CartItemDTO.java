@@ -12,4 +12,6 @@ public class CartItemDTO {
     private BigDecimal totalQuantity;
     private BigDecimal totalPrice;
     private String unitLabel;
+    private BigDecimal unitPrice; // this is dynamic price shown to user
+
 }

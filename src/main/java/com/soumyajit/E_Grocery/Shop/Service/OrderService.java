@@ -60,7 +60,7 @@ public class OrderService {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("No active address found"));
 
-        // ✅ Convert to embeddable form
+        // ✅ Convert to embeddable address
         EmbeddedAddress deliveryAddress = EmbeddedAddress.builder()
                 .houseNumber(activeAddress.getHouseNumber())
                 .street(activeAddress.getStreet())
@@ -78,8 +78,10 @@ public class OrderService {
             Product product = cart.getProduct();
             int quantity = cart.getQuantity();
 
-            BigDecimal itemTotalPrice = (product.getUnitPrice()
-                    .multiply(BigDecimal.valueOf(quantity)));
+            // ✅ Get discounted price if available
+            BigDecimal effectivePrice = getEffectivePrice(product);
+
+            BigDecimal itemTotalPrice = effectivePrice.multiply(BigDecimal.valueOf(quantity));
             totalAmount = totalAmount.add(itemTotalPrice);
 
             BigDecimal totalUnitQty = product.getUnitQuantity().multiply(BigDecimal.valueOf(quantity));
@@ -88,7 +90,7 @@ public class OrderService {
             OrderItem orderItem = OrderItem.builder()
                     .product(product)
                     .quantity(quantity)
-                    .price(itemTotalPrice)
+                    .price(itemTotalPrice)  // total price for this item
                     .weight(weight)
                     .build();
 
@@ -101,15 +103,15 @@ public class OrderService {
                 .totalAmount(totalAmount)
                 .placedAt(LocalDateTime.now())
                 .items(orderItems)
-                .deliveryAddress(deliveryAddress) // ✅ Set delivery address
+                .deliveryAddress(deliveryAddress)
                 .build();
 
         orderItems.forEach(item -> item.setOrder(order));
+
         orderRepo.save(order);
         cartRepo.deleteByCustomerId(customerId);
 
-
-
+        // ✅ Prepare email DTOs
         List<OrderItemDTO> itemDTOs = order.getItems().stream()
                 .map(item -> OrderItemDTO.builder()
                         .productName(item.getProduct().getName())
@@ -119,14 +121,15 @@ public class OrderService {
                         .build()
                 ).collect(Collectors.toList());
 
+        // ✅ Send order placed email
         sendOrderPlacedEmail(
                 customer.getEmail(),
                 customer.getName(),
                 order.getId(),
                 itemDTOs
         );
-
     }
+
 
 
 
@@ -326,9 +329,19 @@ public class OrderService {
         );
     }
 
+    private BigDecimal getEffectivePrice(Product product) {
+        if (product.getDiscountedPrice() != null &&
+                product.getDiscountExpiresAt() != null &&
+                product.getDiscountExpiresAt().isAfter(LocalDateTime.now())) {
+            return product.getDiscountedPrice();
+        }
+        return product.getUnitPrice();
+    }
 
 
-    public void sendCancellationEmail(String toEmail, String customerName, Long orderId, BigDecimal totalAmount, LocalDateTime cancelledAt, String reason) {
+
+
+    private void sendCancellationEmail(String toEmail, String customerName, Long orderId, BigDecimal totalAmount, LocalDateTime cancelledAt, String reason) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
