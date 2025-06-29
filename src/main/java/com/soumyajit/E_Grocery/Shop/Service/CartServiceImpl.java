@@ -13,6 +13,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -42,12 +43,16 @@ public class CartServiceImpl implements CartService {
         int updatedQuantity = cartItem.getQuantity() + dto.getQuantity();
         cartItem.setQuantity(updatedQuantity);
 
-        // ✅ Set calculated total price and quantity
-        cartItem.setTotalPrice(product.getUnitPrice() * updatedQuantity);
-        cartItem.setTotalQuantity(product.getUnitQuantity() * updatedQuantity);
+        // ✅ Multiply unit price and quantity using BigDecimal
+        BigDecimal totalPrice = product.getUnitPrice().multiply(BigDecimal.valueOf(updatedQuantity));
+        BigDecimal totalQuantity = product.getUnitQuantity().multiply(BigDecimal.valueOf(updatedQuantity));
+
+        cartItem.setTotalPrice(totalPrice);
+        cartItem.setTotalQuantity(totalQuantity);
 
         return modelMapper.map(cartRepository.save(cartItem), CartItemDTO.class);
     }
+
 
 
     @Override

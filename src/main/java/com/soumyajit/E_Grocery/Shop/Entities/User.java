@@ -32,6 +32,7 @@ public class User implements UserDetails {
 
     private String roles;
 
+    @Column(nullable = false)
     private String mob_no;
 
     // ✅ Updated address field to handle multiple addresses

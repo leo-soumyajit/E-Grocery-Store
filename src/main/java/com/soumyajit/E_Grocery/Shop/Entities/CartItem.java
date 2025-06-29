@@ -3,6 +3,8 @@ package com.soumyajit.E_Grocery.Shop.Entities;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @Entity
 @Data
 @NoArgsConstructor
@@ -21,6 +23,6 @@ public class CartItem {
     private Product product;
 
     private int quantity;            // number of units added
-    private double totalQuantity;   // = unitQuantity * quantity
-    private double totalPrice;      // = unitPrice * quantity
+    private BigDecimal totalQuantity;   // = unitQuantity * quantity
+    private BigDecimal totalPrice;      // = unitPrice * quantity
 }

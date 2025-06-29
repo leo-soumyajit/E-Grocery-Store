@@ -11,5 +11,5 @@ public class UserDTOS {
     private Long id;
     private String email;
     private String name;
-    private Long mob_no;
+    private String mob_no;
 }

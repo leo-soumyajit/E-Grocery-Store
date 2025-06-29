@@ -19,4 +19,6 @@ public class SignUpRequestDTOS {
     private String email;
 
     private String password;
+
+    private String mob_no;
 }

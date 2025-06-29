@@ -47,11 +47,13 @@ public class WebSecurityConfig {
                         // ===== Admin Routes =====
 
                         .requestMatchers(HttpMethod.GET, "/api/products/admin/all").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/products/admin/imageUpdate/*").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/products").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET,"/api/orders/all").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET,"/api/orders/admin/active").hasRole("ADMIN")
+
                         .requestMatchers(HttpMethod.PUT, "/api/orders/*/status").hasRole("ADMIN")
 
                         // ===== Authenticated User Routes =====

@@ -78,11 +78,11 @@ public class OrderService {
             Product product = cart.getProduct();
             int quantity = cart.getQuantity();
 
-            BigDecimal itemTotalPrice = BigDecimal.valueOf(product.getUnitPrice())
-                    .multiply(BigDecimal.valueOf(quantity));
+            BigDecimal itemTotalPrice = (product.getUnitPrice()
+                    .multiply(BigDecimal.valueOf(quantity)));
             totalAmount = totalAmount.add(itemTotalPrice);
 
-            double totalUnitQty = product.getUnitQuantity() * quantity;
+            BigDecimal totalUnitQty = product.getUnitQuantity().multiply(BigDecimal.valueOf(quantity));
             String weight = totalUnitQty + product.getUnitLabel();
 
             OrderItem orderItem = OrderItem.builder()
@@ -176,7 +176,7 @@ public class OrderService {
 
 
     public List<OrderResponseDTO> getOrdersByCustomer(Long customerId) {
-        List<OrderEntity> orders = orderRepo.findByCustomerId(customerId);
+        List<OrderEntity> orders = orderRepo.findByCustomerIdOrderByPlacedAtDesc(customerId);
 
         return orders.stream().map(order -> {
             List<OrderItemDTO> itemDTOs = order.getItems().stream().map(item ->
@@ -199,47 +199,52 @@ public class OrderService {
     }
 
 
+
     public List<AdminOrderResponseDTO> getAllOrders() {
-        return orderRepo.findAll().stream().map(order -> {
-            // Map order items to DTO
-            List<OrderItemDTO> itemDTOs = order.getItems().stream().map(item ->
-                    OrderItemDTO.builder()
-                            .productName(item.getProduct().getName())
-                            .quantity(item.getQuantity())
-                            .price(item.getPrice())
-                            .weight(item.getWeight())
-                            .build()
-            ).toList();
+        return orderRepo.findAll().stream()
+                .sorted((o1, o2) -> o2.getPlacedAt().compareTo(o1.getPlacedAt()))
+                .map(order -> {
+                    // Map order items to DTO
+                    List<OrderItemDTO> itemDTOs = order.getItems().stream().map(item ->
+                            OrderItemDTO.builder()
+                                    .productName(item.getProduct().getName())
+                                    .quantity(item.getQuantity())
+                                    .price(item.getPrice())
+                                    .weight(item.getWeight())
+                                    .build()
+                    ).toList();
 
-            // Map embedded delivery address to AddressDTO (handle null safely)
-            AddressDTO addressDTO = null;
-            if (order.getDeliveryAddress() != null) {
-                EmbeddedAddress embedded = order.getDeliveryAddress();
-                addressDTO = AddressDTO.builder()
-                        .houseNumber(embedded.getHouseNumber())
-                        .street(embedded.getStreet())
-                        .city(embedded.getCity())
-                        .district(embedded.getDistrict())
-                        .state(embedded.getState())
-                        .pinCode(embedded.getPinCode())
-                        .country(embedded.getCountry())
-                        .build();
-            }
+                    // Map embedded delivery address to AddressDTO (handle null safely)
+                    AddressDTO addressDTO = null;
+                    if (order.getDeliveryAddress() != null) {
+                        EmbeddedAddress embedded = order.getDeliveryAddress();
+                        addressDTO = AddressDTO.builder()
+                                .houseNumber(embedded.getHouseNumber())
+                                .street(embedded.getStreet())
+                                .city(embedded.getCity())
+                                .district(embedded.getDistrict())
+                                .state(embedded.getState())
+                                .pinCode(embedded.getPinCode())
+                                .country(embedded.getCountry())
+                                .build();
+                    }
 
-            // Build and return response DTO
-            return AdminOrderResponseDTO.builder()
-                    .orderId(order.getId())
-                    .customerName(order.getCustomer().getName())
-                    .customerEmail(order.getCustomer().getEmail())
-                    .mob_no(order.getCustomer().getMob_no())
-                    .status(order.getStatus().name())
-                    .totalAmount(order.getTotalAmount())
-                    .placedAt(order.getPlacedAt())
-                    .items(itemDTOs)
-                    .addresses(addressDTO)
-                    .build();
-        }).toList();
+                    // Build and return response DTO
+                    return AdminOrderResponseDTO.builder()
+                            .orderId(order.getId())
+                            .customerName(order.getCustomer().getName())
+                            .customerEmail(order.getCustomer().getEmail())
+                            .mob_no(order.getCustomer().getMob_no())
+                            .status(order.getStatus().name())
+                            .totalAmount(order.getTotalAmount())
+                            .placedAt(order.getPlacedAt())
+                            .items(itemDTOs)
+                            .addresses(addressDTO)
+                            .build();
+                })
+                .toList();
     }
+
 
 
 
