@@ -107,4 +107,10 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<List<ProductDTO>> searchProducts(@RequestParam("keyword") String keyword) {
+        List<ProductDTO> result = productService.searchProducts(keyword);
+        return ResponseEntity.ok(result);
+    }
+
 }

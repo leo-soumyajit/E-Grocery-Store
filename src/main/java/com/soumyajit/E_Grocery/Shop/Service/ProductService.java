@@ -17,4 +17,5 @@ public interface ProductService {
     public List<ProductDTOforAdmin> getAllProductsForAdmin();
     public String updateProductImage(Long productId, MultipartFile imageFile);
     public ProductDTO applyDiscount(Long productId, DiscountDTO dto);
+    public List<ProductDTO> searchProducts(String keyword);
 }

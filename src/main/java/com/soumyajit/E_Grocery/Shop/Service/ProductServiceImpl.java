@@ -230,6 +230,53 @@ public class ProductServiceImpl implements ProductService {
         return modelMapper.map(product, ProductDTO.class);
     }
 
+
+    @Override
+    public List<ProductDTO> searchProducts(String keyword) {
+        LocalDateTime now = LocalDateTime.now();
+
+        List<Product> products = productRepository.searchByNameContaining(keyword);
+
+        return products.stream().map(product -> {
+            ProductDTO dto = modelMapper.map(product, ProductDTO.class);
+
+            // Only include discount if it's still active
+            if (product.getDiscountedPrice() != null &&
+                    product.getDiscountExpiresAt() != null &&
+                    product.getDiscountExpiresAt().isAfter(now)) {
+                BigDecimal discountPercent = product.getUnitPrice()
+                        .subtract(product.getDiscountedPrice())
+                        .divide(product.getUnitPrice(), 2, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100));
+                dto.setUnitPrice(product.getDiscountedPrice());
+                dto.setDiscountPercentage(discountPercent);
+                dto.setDiscountExpiresAt(product.getDiscountExpiresAt());
+            } else {
+                dto.setDiscountPercentage(null);
+                dto.setDiscountExpiresAt(null);
+            }
+
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     @Async
     private void sendDiscountEmailToUsers(Product product) {
 //        List<User> users = userRepository.findByRolesIgnoreCase("USER");
