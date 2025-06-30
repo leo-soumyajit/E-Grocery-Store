@@ -1,17 +1,16 @@
 package com.soumyajit.E_Grocery.Shop.DTOS;
 
+// RationItemUpdateRequest.java
+
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RationListDTO {
-    private Long id;
-    private List<RationItemDTO> items;
+public class RationItemUpdateRequest {
+    private Long productId;
+    private Integer quantity;
 }
+

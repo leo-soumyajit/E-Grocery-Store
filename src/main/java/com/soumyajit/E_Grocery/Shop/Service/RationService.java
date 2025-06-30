@@ -1,5 +1,7 @@
 package com.soumyajit.E_Grocery.Shop.Service;
 
+import com.soumyajit.E_Grocery.Shop.DTOS.RationItemDTO;
+import com.soumyajit.E_Grocery.Shop.DTOS.RationItemUpdateRequest;
 import com.soumyajit.E_Grocery.Shop.DTOS.RationListDTO;
 import com.soumyajit.E_Grocery.Shop.EmailService.EmailService;
 import com.soumyajit.E_Grocery.Shop.Entities.CartItem;
@@ -15,13 +17,24 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,26 +46,120 @@ public class RationService {
     private final CartRepository cartRepo;
     private final JavaMailSender mailSender;
 
-    public void saveRationList(String email, RationListDTO dto) {
+    public void addOrUpdateRationItem(String email, RationItemDTO dto) {
         User user = userRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        List<RationItem> items = dto.getItems().stream()
-                .map(it -> RationItem.builder()
-                        .product(productRepo.findById(it.getProductId()).orElseThrow())
-                        .quantity(it.getQuantity())
-                        .build())
-                .toList();
+        Product product = productRepo.findById(dto.getProductId())
+                .orElseThrow(() -> new RuntimeException("Product not found"));
 
         RationList list = rationRepo.findByUser(user)
-                .orElse(RationList.builder().user(user).build());
+                .orElseGet(() -> rationRepo.save(RationList.builder().user(user).build()));
 
-        list.setItems(items);
+        // Check if the product already exists in the list
+        Optional<RationItem> existingItemOpt = list.getItems().stream()
+                .filter(i -> i.getProduct().getId().equals(dto.getProductId()))
+                .findFirst();
+
+        if (existingItemOpt.isPresent()) {
+            // Update quantity
+            RationItem existingItem = existingItemOpt.get();
+            existingItem.setQuantity(existingItem.getQuantity() + dto.getQuantity());
+        } else {
+            // Add new item
+            RationItem newItem = RationItem.builder()
+                    .product(product)
+                    .quantity(dto.getQuantity())
+                    .build();
+            list.getItems().add(newItem);
+        }
+
         rationRepo.save(list);
     }
 
+    // RationService.java
+
+    public void updateRationItem(User user, RationItemUpdateRequest request) {
+        RationList list = rationRepo.findByUser(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ration list not found"));
+
+        Optional<RationItem> optionalItem = list.getItems().stream()
+                .filter(item -> item.getProduct().getId().equals(request.getProductId()))
+                .findFirst();
+
+        if (optionalItem.isPresent()) {
+            RationItem item = optionalItem.get();
+
+            if (request.getQuantity() <= 0) {
+                list.getItems().remove(item); // optional: remove item if quantity is 0
+            } else {
+                item.setQuantity(request.getQuantity());
+            }
+
+            rationRepo.save(list);
+        } else {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found in ration list.");
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+    public RationListDTO getMyRationList(User user) {
+        RationList list = rationRepo.findByUser(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ration list not found"));
+
+        List<RationItemDTO> itemDTOs = list.getItems().stream().map(item -> {
+            Product p = item.getProduct();
+
+            // Always use original price (ignore discount)
+            BigDecimal price = p.getUnitPrice();
+
+            return new RationItemDTO(
+                    item.getId(),
+                    p.getId(),
+                    p.getName(),
+                    p.getImageUrl(),
+                    price,
+                    item.getQuantity(),
+                    p.getUnitLabel()
+            );
+
+        }).collect(Collectors.toList());
+
+        return new RationListDTO(list.getId(), itemDTOs);
+    }
+
+
+
+
+    public void deleteMyRationList(User user) {
+        RationList list = rationRepo.findByUser(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ration list not found"));
+        rationRepo.delete(list);
+    }
+
+
+
+
     public String checkoutRationList(Long listId) {
         RationList list = rationRepo.findById(listId).orElseThrow();
+
+        // ✅ Get currently logged-in username (email/username)
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = auth.getName();
+
+        // ✅ Verify the logged-in user is the owner of the list
+        if (!list.getUser().getEmail().equals(currentUsername)) {
+            throw new AccessDeniedException("You are not authorized to access this list.");
+        }
+
         User user = list.getUser();
 
         list.getItems().forEach(it -> {
@@ -75,8 +182,9 @@ public class RationService {
             cartRepo.save(ci);
         });
 
-        return "Products added to your cart. Checkout the cart.";
+        return "✅ Products added to your cart. Please checkout the cart.";
     }
+
 
 
 
@@ -85,6 +193,7 @@ public class RationService {
     // Final cron (1st of every month at 8 AM): "0 0 8 1 * ?"
 //    @Scheduled(cron = "0 * * * * *")
     @Scheduled(cron = "0 0 8 1 * ?")
+
     @Transactional
     public void sendMonthlyRationEmails() {
         List<RationList> lists = rationRepo.findAll(); // entity graph will handle the eager loading
@@ -115,6 +224,7 @@ public class RationService {
 
     private String buildRationEmailBody(RationList list) {
         StringBuilder sb = new StringBuilder();
+        BigDecimal totalAmount = BigDecimal.ZERO;
 
         sb.append("<div style='font-family: Arial, sans-serif;'>")
                 .append("<h2>Hi ").append(list.getUser().getName()).append(",</h2>")
@@ -130,13 +240,27 @@ public class RationService {
 
         for (RationItem item : list.getItems()) {
             Product product = item.getProduct();
+            BigDecimal unitPrice = product.getUnitPrice();
+            Integer quantity = item.getQuantity();
+
+            BigDecimal itemTotal = (unitPrice != null && quantity != null)
+                    ? unitPrice.multiply(BigDecimal.valueOf(quantity))
+                    : BigDecimal.ZERO;
+
+            totalAmount = totalAmount.add(itemTotal);
+
             sb.append("<tr style='background-color: #f9f9f9;'>")
                     .append("<td style='padding: 10px; border: 1px solid #ddd;'>").append(product.getName()).append("</td>")
-                    .append("<td style='padding: 10px; border: 1px solid #ddd;'>").append(item.getQuantity()).append("</td>")
-                    .append("<td style='padding: 10px; border: 1px solid #ddd;'>₹")
-                    .append(product.getUnitPrice() != null ? product.getUnitPrice().toString() : "N/A").append("</td>")
+                    .append("<td style='padding: 10px; border: 1px solid #ddd;'>").append(quantity).append("</td>")
+                    .append("<td style='padding: 10px; border: 1px solid #ddd;'>₹").append(itemTotal).append("</td>")
                     .append("</tr>");
         }
+
+        // Total row
+        sb.append("<tr style='font-weight: bold; background-color: #e8e8e8;'>")
+                .append("<td colspan='2' style='padding: 10px; border: 1px solid #ddd; text-align: right;'>Total:</td>")
+                .append("<td style='padding: 10px; border: 1px solid #ddd;'>₹").append(totalAmount).append("</td>")
+                .append("</tr>");
 
         sb.append("</tbody></table>")
 
@@ -159,5 +283,6 @@ public class RationService {
 
         return sb.toString();
     }
+
 
 }

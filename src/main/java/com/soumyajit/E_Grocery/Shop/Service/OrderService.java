@@ -156,20 +156,20 @@ public class OrderService {
         switch (status) {
             case ACCEPTED -> {
                 order.setAcceptedAt(LocalDateTime.now());
-                twilioService.sendWhatsApp(customerPhone,
-                        "✅ Your order #" + order.getId() + " has been *ACCEPTED*.\nWe will notify you once it is out for delivery.");
+//                twilioService.sendWhatsApp(customerPhone,
+//                        "✅ Your order #" + order.getId() + " has been *ACCEPTED*.\nWe will notify you once it is out for delivery.");
             }
             case DELIVERED -> {
                 order.setDeliveredAt(LocalDateTime.now());
                 OrderDTO orderDTO = orderMapper.toDto(order);
                 sendInvoiceEmailService.sendInvoice(orderDTO);
 
-                twilioService.sendWhatsApp(customerPhone,
-                        "📦 Good news! Your order #" + order.getId() + " has been *DELIVERED*.\nThank you for shopping with us!");
+//                twilioService.sendWhatsApp(customerPhone,
+//                        "📦 Good news! Your order #" + order.getId() + " has been *DELIVERED*.\nThank you for shopping with us!");
             }
             case REJECTED -> {
-                twilioService.sendWhatsApp(customerPhone,
-                        "❌ We regret to inform you that your order #" + order.getId() + " has been *REJECTED*.\nPlease contact support for details.");
+//                twilioService.sendWhatsApp(customerPhone,
+//                        "❌ We regret to inform you that your order #" + order.getId() + " has been *REJECTED*.\nPlease contact support for details.");
             }
         }
 

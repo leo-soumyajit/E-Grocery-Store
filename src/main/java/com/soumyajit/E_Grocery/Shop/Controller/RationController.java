@@ -1,7 +1,11 @@
 package com.soumyajit.E_Grocery.Shop.Controller;
 
 import com.soumyajit.E_Grocery.Shop.Advices.ApiResponse;
+import com.soumyajit.E_Grocery.Shop.DTOS.RationItemDTO;
+import com.soumyajit.E_Grocery.Shop.DTOS.RationItemUpdateRequest;
 import com.soumyajit.E_Grocery.Shop.DTOS.RationListDTO;
+import com.soumyajit.E_Grocery.Shop.Entities.RationList;
+import com.soumyajit.E_Grocery.Shop.Entities.User;
 import com.soumyajit.E_Grocery.Shop.Service.RationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -9,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
 import java.time.LocalDateTime;
@@ -19,12 +24,15 @@ import java.time.LocalDateTime;
 public class RationController {
     private final RationService rationService;
 
-    @PostMapping("/save")
-    public ResponseEntity<ApiResponse<String>> save(@AuthenticationPrincipal UserDetails ud, @RequestBody RationListDTO dto) {
-        rationService.saveRationList(ud.getUsername(), dto);
-        ApiResponse response = new ApiResponse("Ration list saved");
-        return ResponseEntity.ok(response);
+    @PostMapping("/add")
+    public ResponseEntity<ApiResponse<String>> addRationItem(
+            @AuthenticationPrincipal User user,
+            @RequestBody RationItemDTO dto) {
+        rationService.addOrUpdateRationItem(user.getEmail(), dto);
+        ApiResponse apiResponse = new ApiResponse("Product added in your ration list.");
+        return ResponseEntity.ok(apiResponse);
     }
+
 
     @GetMapping("/checkout")
     public ResponseEntity<ApiResponse<String>> checkout(@RequestParam Long listId) {
@@ -32,6 +40,30 @@ public class RationController {
         ApiResponse<String> response = new ApiResponse<>(message);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/my")
+    public ResponseEntity<RationListDTO> getMyRationList(@AuthenticationPrincipal User user) {
+        RationListDTO dto = rationService.getMyRationList(user);
+        return ResponseEntity.ok(dto);
+    }
+
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<ApiResponse<String>> deleteMyRationList(@AuthenticationPrincipal User user) {
+        rationService.deleteMyRationList(user);
+        ApiResponse apiResponse = new ApiResponse("Ration list deleted successfully.");
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @PutMapping("/update")
+    public ResponseEntity<ApiResponse<String>> updateRationItem(
+            @AuthenticationPrincipal User user,
+            @RequestBody RationItemUpdateRequest request) {
+        rationService.updateRationItem(user, request);
+        ApiResponse apiResponse = new ApiResponse("Ration item updated successfully.");
+        return ResponseEntity.ok(apiResponse);
+    }
+
 
 }
 

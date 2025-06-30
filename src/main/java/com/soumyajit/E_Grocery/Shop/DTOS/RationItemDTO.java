@@ -5,12 +5,18 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
-@Builder
-@NoArgsConstructor
 @AllArgsConstructor
 public class RationItemDTO {
+    private Long id;
     private Long productId;
-    private int quantity;
+    private String productName;
+    private String productImageUrl;
+    private BigDecimal price;
+    private Integer quantity;
+    private String unitLabel;
 }
+
 

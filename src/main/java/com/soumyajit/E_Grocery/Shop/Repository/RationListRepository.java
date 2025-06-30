@@ -12,6 +12,7 @@ public interface RationListRepository extends JpaRepository<RationList, Long> {
 
     Optional<RationList> findByUser(User user);
 
+
     @EntityGraph(attributePaths = {"user", "items", "items.product"})
     List<RationList> findAll();
     // <-- this will now fetch items + products eagerly
