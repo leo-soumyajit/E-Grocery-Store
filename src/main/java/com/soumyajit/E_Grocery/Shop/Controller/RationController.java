@@ -35,11 +35,11 @@ public class RationController {
 
 
     @GetMapping("/checkout")
-    public ResponseEntity<ApiResponse<String>> checkout(@RequestParam Long listId) {
-        String message = rationService.checkoutRationList(listId);
-        ApiResponse<String> response = new ApiResponse<>(message);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<String>> checkout(@AuthenticationPrincipal User user) {
+        String message = rationService.checkoutRationList(user);
+        return ResponseEntity.ok(new ApiResponse<>(message));
     }
+
 
     @GetMapping("/my")
     public ResponseEntity<RationListDTO> getMyRationList(@AuthenticationPrincipal User user) {

@@ -32,6 +32,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -54,7 +55,18 @@ public class RationService {
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
         RationList list = rationRepo.findByUser(user)
-                .orElseGet(() -> rationRepo.save(RationList.builder().user(user).build()));
+                .orElseGet(() -> {
+                    RationList newList = RationList.builder()
+                            .user(user)
+                            .items(new ArrayList<>())  // ✅ initialize empty list
+                            .build();
+                    return rationRepo.save(newList);
+                });
+
+        // ✅ Ensure the items list is initialized (in case it was not)
+        if (list.getItems() == null) {
+            list.setItems(new ArrayList<>());
+        }
 
         // Check if the product already exists in the list
         Optional<RationItem> existingItemOpt = list.getItems().stream()
@@ -77,7 +89,6 @@ public class RationService {
         rationRepo.save(list);
     }
 
-    // RationService.java
 
     public void updateRationItem(User user, RationItemUpdateRequest request) {
         RationList list = rationRepo.findByUser(user)
@@ -148,19 +159,14 @@ public class RationService {
 
 
 
-    public String checkoutRationList(Long listId) {
-        RationList list = rationRepo.findById(listId).orElseThrow();
+    public String checkoutRationList(User user) {
+        RationList list = rationRepo.findByUser(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ration list not found"));
 
-        // ✅ Get currently logged-in username (email/username)
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String currentUsername = auth.getName();
-
-        // ✅ Verify the logged-in user is the owner of the list
-        if (!list.getUser().getEmail().equals(currentUsername)) {
+        // Ensure ownership check (although redundant since it's fetched by current user)
+        if (!list.getUser().getId().equals(user.getId())) {
             throw new AccessDeniedException("You are not authorized to access this list.");
         }
-
-        User user = list.getUser();
 
         list.getItems().forEach(it -> {
             CartItem ci = new CartItem();
@@ -168,6 +174,7 @@ public class RationService {
             ci.setProduct(it.getProduct());
             ci.setQuantity(it.getQuantity());
 
+            // Use real-time price to avoid stale discount bugs
             BigDecimal pricePerUnit = it.getProduct().getUnitPrice();
             Integer quantity = it.getQuantity();
 
