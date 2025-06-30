@@ -15,6 +15,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -80,7 +81,7 @@ public class AuthService {
                         new ResourceNotFound("User not found with id : " + uerId));
         return jwtService.generateAccessToken(user);
     }
-
+    @Async
     private void sendWelcomeEmail(SignUpRequestDTOS signUpRequestDTOS) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -91,9 +92,12 @@ public class AuthService {
 
             String name = signUpRequestDTOS.getName();
 
-            String plainText = "Welcome to our website, dear " + name + ".\n\n"
-                    + "We are excited to have you onboard.\n"
-                    + "ISA & ISOI HIT SC";
+            String plainText = "Welcome to E-Grocery, " + name + "!\n\n"
+                    + "We're excited to have you onboard.\n"
+                    + "Enjoy smooth grocery shopping, access real-time discounts, and Start managing your monthly ration list easily.\n\n"
+                    + "Happy shopping!\n"
+
+                    + "— The E-Grocery Team";
 
             String htmlContent = buildStyledWelcomeEmail(name);
 
@@ -108,40 +112,38 @@ public class AuthService {
 
     private String buildStyledWelcomeEmail(String name) {
         return """
-    <div style="font-family: 'Segoe UI', sans-serif; background-color: #f4f8fc; padding: 20px;">
-        <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
-            <div style="text-align: center; margin-bottom: 10px;">
-               <img src="https://res.cloudinary.com/dcrmg4j1l/image/upload/v1743970965/isalogo-removebg-preview_h5wtkm.png"
-                         alt="ISA Logo" style="width: 60px; height: auto;" />
-            </div>
-           <hr style="margin-top: 30px; border: none; border-top: 1px solid #ccc;" />
-            <h2 style="color: #003366; text-align: center;">🎓 Welcome to ISA HIT Student Chapter 🎓</h2>
-            <p style="font-size: 16px; color: #333333; text-align: center;">
-                Dear <strong>%s</strong>,<br/><br/>
-                🎉 We're thrilled to have you with us!<br/>
-                🌟 Start exploring and engaging with our awesome community.
+    <div style="font-family: 'Segoe UI', sans-serif; background-color: #f5f5f5; padding: 20px;">
+        <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
+            <h2 style="color: #2c3e50; text-align: center;">👋 Welcome to E‑Grocery, %s!</h2>
+            
+            <p style="font-size: 16px; color: #333333; line-height: 1.6;">
+                We're excited to have you onboard!
+                "Enjoy smooth grocery shopping, access real-time discounts, and Start managing your monthly ration list easily.
             </p>
+            
+            <p style="font-size: 16px; color: #333333; line-height: 1.6;">
+                🚀 Enjoy real-time discounts, smart cart management, and quick checkout and start by building your first ration list today and simplify your monthly essentials.
+            </p>
+            
             <div style="text-align: center; margin: 30px 0;">
-                <a href="https://www.linkedin.com/company/isa-hit-student-chapter/posts/?feedView=all" style="background-color: #004080; color: #ffffff; padding: 12px 20px; text-decoration: none; border-radius: 5px;">👉 Get Started</a>
+                <a href="https://yourapp.com/ration" 
+                   style="background-color: #28a745; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                    🛒 Start shopping now 
+                </a>
             </div>
-            <hr style="margin-top: 30px; border: none; border-top: 1px solid #ccc;" />
-            <p style="font-size: 12px; color: #888888; text-align: center; margin-top: 10px;">
-                 ISA & ISOI HIT SC | 📍 Haldia, West Bengal
+            
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
+            
+            <p style="font-size: 14px; color: #777777; text-align: center;">
+                If you have any questions or need help, just reply to this email or visit our support page.
+                <br/><br/>
+                🛒 Happy shopping!<br/>
+                — The E‑Grocery Team
             </p>
-            <div style="text-align: center; margin-top: 10px;">
-                <a href="https://www.instagram.com" style="margin: 0 8px;">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1384/1384063.png" width="18" alt="Instagram" />
-                </a>
-                <a href="https://www.facebook.com" style="margin: 0 8px;">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1384/1384053.png" width="18" alt="Facebook" />
-                </a>
-                <a href="https://www.linkedin.com" style="margin: 0 8px;">
-                    <img src="https://cdn-icons-png.flaticon.com/512/145/145807.png" width="18" alt="LinkedIn" />
-                </a>
-            </div>
         </div>
     </div>
     """.formatted(name);
     }
+
 
 }
