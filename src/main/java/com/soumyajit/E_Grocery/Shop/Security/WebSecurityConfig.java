@@ -41,29 +41,29 @@ public class WebSecurityConfig {
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         // ===== Public Routes =====
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/products").permitAll()
+                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products").permitAll()
 
                         // ===== Admin Routes =====
-
-                        .requestMatchers(HttpMethod.GET, "/api/products/admin/all").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/products/admin/imageUpdate/*").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/products").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET,"/api/orders/all").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET,"/api/orders/admin/active").hasRole("ADMIN")
-
-                        .requestMatchers(HttpMethod.PUT, "/api/orders/*/status").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products/admin/all").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products/admin/imageUpdate/*").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/products").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/products/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/products/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orders/all").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orders/admin/active").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/orders/*/status").hasRole("ADMIN")
 
                         // ===== Authenticated User Routes =====
-                        .requestMatchers("/api/cart/**").authenticated()
-                        .requestMatchers("/api/orders/place/**").authenticated()
-                        .requestMatchers("/api/orders/customer/**").authenticated()
+                        .requestMatchers("/api/v1/cart/**").authenticated()
+                        .requestMatchers("/api/v1/orders/place/**").authenticated()
+                        .requestMatchers("/api/v1/orders/customer/**").authenticated()
+                        .requestMatchers("/api/v1/user-profile/**").authenticated()
 
                         // ===== Fallback =====
                         .anyRequest().permitAll()
                 )
+
                 .exceptionHandling(config ->
                         config.accessDeniedHandler(accessDeniedHandler())
                 );

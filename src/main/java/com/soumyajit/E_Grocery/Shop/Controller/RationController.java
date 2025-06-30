@@ -19,7 +19,7 @@ import java.net.URI;
 import java.time.LocalDateTime;
 
 @RestController
-@RequestMapping("/api/ration")
+@RequestMapping("/ration")
 @RequiredArgsConstructor
 public class RationController {
     private final RationService rationService;
