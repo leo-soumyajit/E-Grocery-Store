@@ -33,6 +33,36 @@ A robust and scalable backend service designed with **Spring Boot**, tailored fo
 
 ---
 
+📦 E-Grocery-Shop-Backend  
+├── 📁 .idea  
+├── 📁 .mvn  
+├── 📁 src  
+│   └── 📁 main  
+│       ├── 📁 java  
+│       │   └── 📦 com.soumyajit.E_Grocery.Shop  
+│       │       ├── 📁 Advices  
+│       │       ├── 📁 config  
+│       │       ├── 📁 Controller  
+│       │       ├── 📁 DTOS  
+│       │       ├── 📁 EmailService  
+│       │       ├── 📁 Entities  
+│       │       ├── 📁 Exception  
+│       │       ├── 📁 NotificationService  
+│       │       ├── 📁 Repository  
+│       │       ├── 📁 Security  
+│       │       ├── 📁 Service  
+│       │       ├── 📁 Utils  
+│       │       └── 📄 EGroceryShopApplication.java  
+│       └── 📁 resources  
+├── 📁 test  
+├── 📁 target  
+├── 📄 .gitignore  
+├── 📄 HELP.md  
+├── 🛠️ mvnw  
+├── 🛠️ mvnw.cmd  
+└── 📄 pom.xml  
+
+
 
 ## ⚙️ Setup & Run Locally
 
