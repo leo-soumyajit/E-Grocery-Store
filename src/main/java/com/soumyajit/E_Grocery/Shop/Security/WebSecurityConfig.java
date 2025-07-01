@@ -60,8 +60,12 @@ public class WebSecurityConfig {
                         .requestMatchers("/api/v1/orders/customer/**").authenticated()
                         .requestMatchers("/api/v1/user-profile/**").authenticated()
 
+
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+
                         // ===== Fallback =====
                         .anyRequest().permitAll()
+
                 )
 
                 .exceptionHandling(config ->
