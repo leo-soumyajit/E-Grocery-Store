@@ -93,3 +93,5 @@ server.servlet.context-path=/api/v1
 Once the server is running, open in browser:
 ```bash
 http://localhost:8000/api/v1/swagger-ui/index.html
+```
+> 🔗 View the full API reference in [Postman Collection](https://www.postman.com/newsly-0222/workspace/e-grocery-store)
