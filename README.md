@@ -78,7 +78,7 @@ cd E-Grocery-Store
 🛠 Configure Database Connection
 Edit the application.properties file:
 ```bash
-spring.datasource.url=jdbc:postgresql://localhost:5432/e_grocery
+spring.datasource.url=jdbc:postgresql://localhost:5432/<your_db_name>
 spring.datasource.username=your_db_username
 spring.datasource.password=your_db_password
 server.servlet.context-path=/api/v1
