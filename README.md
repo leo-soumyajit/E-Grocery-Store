@@ -65,7 +65,7 @@ A robust and scalable backend service designed with **Spring Boot**, tailored fo
 ├── 🛠️ mvnw.cmd  
 └── 📄 pom.xml  
 
-
+---
 
 ## ⚙️ Setup & Run Locally
 
@@ -92,4 +92,4 @@ server.servlet.context-path=/api/v1
 📄 Access Swagger API Docs
 Once the server is running, open in browser:
 ```bash
-http://localhost:8000/api/v1/swagger-ui.html
+http://localhost:8000/api/v1/swagger-ui/index.html
