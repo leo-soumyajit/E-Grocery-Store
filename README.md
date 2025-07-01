@@ -33,6 +33,8 @@ A robust and scalable backend service designed with **Spring Boot**, tailored fo
 
 ---
 
+## 📁 Project Structure
+
 📦 E-Grocery-Shop-Backend  
 ├── 📁 .idea  
 ├── 📁 .mvn  
