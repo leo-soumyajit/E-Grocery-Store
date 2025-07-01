@@ -378,7 +378,7 @@ public class OrderService {
             """.formatted(customerName, orderId, formattedDate, totalAmount, reason);
 
             helper.setText(html, true);
-            helper.setFrom("newssocialmedia2025@gmail.com");
+            helper.setFrom("egrocerystoree@gmail.com");
 
             mailSender.send(message);
 
@@ -395,7 +395,7 @@ public class OrderService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
-            helper.setFrom("newssocialmedia2025@gmail.com");
+            helper.setFrom("egrocerystoree@gmail.com");
             helper.setTo(to);
             helper.setSubject("🛒 Order Placed Successfully — Order #" + orderId);
 
@@ -461,7 +461,7 @@ public class OrderService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom("newssocialmedia2025@gmail.com");
+            helper.setFrom("egrocerystoree@gmail.com");
             helper.setTo(orderDTO.getCustomerEmail());
 
             String subject = "🧾 Your E-Grocery Order #" + orderDTO.getOrderId() + " has been " + status;

@@ -35,7 +35,7 @@ public class OtpService {
             MimeMessage message = emailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom("newssocialmedia2025@gmail.com");
+            helper.setFrom("egrocerystoree@gmail.com");
             helper.setTo(email);
             helper.setSubject("🔐 Your OTP Code - E-Grocery");
 

@@ -192,7 +192,7 @@ public class SendInvoiceEmailService {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        helper.setFrom("newssocialmedia2025@gmail.com");
+        helper.setFrom("egrocerystoree@gmail.com");
         helper.setTo(to);
         helper.setSubject(subject);
 

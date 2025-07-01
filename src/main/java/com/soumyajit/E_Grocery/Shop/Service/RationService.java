@@ -217,7 +217,7 @@ public class RationService {
             MimeMessageHelper h = new MimeMessageHelper(msg, true, "UTF-8");
 
             h.setTo(list.getUser().getEmail());
-            h.setFrom("newssocialmedia2025@gmail.com");
+            h.setFrom("egrocerystoree@gmail.com");
             h.setSubject("🛒 Your Monthly Ration is Ready!");
 
             String htmlBody = buildRationEmailBody(list);
