@@ -4,12 +4,18 @@ A robust and scalable backend service designed with **Spring Boot**, tailored fo
 
 ---
 
-<div align="center">
-  <img src="https://forthebadge.com/images/badges/built-with-love.svg" />&nbsp;
-  <img src="https://forthebadge.com/images/badges/uses-brains.svg" />&nbsp;
-  <img src="https://forthebadge.com/images/badges/powered-by-responsibility.svg"/>
+   <div align="center">
+  <img src="https://img.shields.io/badge/Hustled-at%20Midnight-4b0082?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Crafted-with%20Bugs%20%26%20Bravery-f08080?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Battle--Tested-in%20the%20IDE-2e8b57?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Code-Survived%20StackOverflow-4682b4?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Version--Controlled%20by-Git%20and%20Grit-9acd32?style=for-the-badge" />
+
+  <img src="https://img.shields.io/badge/Commit%20Message-Questionable%20at%20Best-ff69b4?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Code%20Status-Emotionally%20Stable%20(ish)-20b2aa?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Made%20With-More%20Googling%20Than%20Coding-bdb76b?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Survived-Merge%20Conflicts-e9967a?style=for-the-badge" />
 </div>
-<br/>
 
 ---
 
