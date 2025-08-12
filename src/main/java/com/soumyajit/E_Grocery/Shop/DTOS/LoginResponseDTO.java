@@ -11,19 +11,22 @@ public class LoginResponseDTO {
     private Long id;
     private String accessToken;
     private String refreshToken;
+    private String roles;
 
     public LoginResponseDTO(String refreshToken) {
         this.refreshToken = refreshToken;
     }
 
-    public LoginResponseDTO(Long id, String accessToken) {
+    public LoginResponseDTO(Long id, String accessToken, String roles) {
         this.id = id;
         this.accessToken = accessToken;
+        this.roles = roles;
     }
 
-    public LoginResponseDTO(Long id,String accessToken, String refreshToken) {
+    public LoginResponseDTO(Long id,String accessToken, String refreshToken, String roles) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.id = id;
+        this.roles = roles;
     }
 }

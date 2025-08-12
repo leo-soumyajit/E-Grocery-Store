@@ -70,8 +70,10 @@ public class AuthService {
         User userEntities = (User) authentication.getPrincipal();
         String accessToken = jwtService.generateAccessToken(userEntities);
         String refreshToken = jwtService.generateRefreshToken(userEntities);
+        String roles = userEntities.getRoles().trim();
+        roles = roles.replaceAll("\\[", "").replaceAll("\\]", "");
 
-        return new LoginResponseDTO(userEntities.getId(), accessToken, refreshToken);
+        return new LoginResponseDTO(userEntities.getId(), accessToken, refreshToken, roles);
     }
 
     public String refreshToken(String refreshToken) {
