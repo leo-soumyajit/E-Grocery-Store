@@ -185,6 +185,7 @@ public class OrderService {
             List<OrderItemDTO> itemDTOs = order.getItems().stream().map(item ->
                     OrderItemDTO.builder()
                             .productName(item.getProduct().getName())
+                            .imageUrl(item.getProduct().getImageUrl())
                             .quantity(item.getQuantity())
                             .price(item.getPrice())
                             .weight(item.getWeight())
