@@ -8,6 +8,8 @@ import java.math.BigDecimal;
 public class CartItemDTO {
     private Long id;
     private Long productId;
+    private String productName;
+    private String imageUrl;
     private int quantity;
     private BigDecimal totalQuantity;
     private BigDecimal totalPrice;

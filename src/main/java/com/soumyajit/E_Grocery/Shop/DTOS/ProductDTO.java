@@ -25,6 +25,7 @@ public class ProductDTO {
     private BigDecimal unitPrice;         // Example: 20.0
     private String imageUrl;
     private String description;
+
     private BigDecimal discountPercentage;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime discountExpiresAt;

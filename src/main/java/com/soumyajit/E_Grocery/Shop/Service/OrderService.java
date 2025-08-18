@@ -203,7 +203,6 @@ public class OrderService {
     }
 
 
-
     public List<AdminOrderResponseDTO> getAllOrders() {
         return orderRepo.findAll().stream()
                 .sorted((o1, o2) -> o2.getPlacedAt().compareTo(o1.getPlacedAt()))
@@ -212,6 +211,7 @@ public class OrderService {
                     List<OrderItemDTO> itemDTOs = order.getItems().stream().map(item ->
                             OrderItemDTO.builder()
                                     .productName(item.getProduct().getName())
+                                    .imageUrl(item.getProduct().getImageUrl())
                                     .quantity(item.getQuantity())
                                     .price(item.getPrice())
                                     .weight(item.getWeight())
@@ -258,6 +258,7 @@ public class OrderService {
                     List<OrderItemDTO> itemDTOs = order.getItems().stream().map(item ->
                             OrderItemDTO.builder()
                                     .productName(item.getProduct().getName())
+                                    .imageUrl(item.getProduct().getImageUrl())
                                     .quantity(item.getQuantity())
                                     .price(item.getPrice())
                                     .weight(item.getWeight())
