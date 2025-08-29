@@ -8,6 +8,7 @@ import com.soumyajit.E_Grocery.Shop.Entities.RationList;
 import com.soumyajit.E_Grocery.Shop.Entities.User;
 import com.soumyajit.E_Grocery.Shop.Service.RationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,6 +22,7 @@ import java.time.LocalDateTime;
 @RestController
 @RequestMapping("/ration")
 @RequiredArgsConstructor
+@Slf4j
 public class RationController {
     private final RationService rationService;
 
@@ -52,6 +54,16 @@ public class RationController {
     public ResponseEntity<ApiResponse<String>> deleteMyRationList(@AuthenticationPrincipal User user) {
         rationService.deleteMyRationList(user);
         ApiResponse apiResponse = new ApiResponse("Ration list deleted successfully.");
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @DeleteMapping("/delete/{productId}")
+    public ResponseEntity<ApiResponse<String>> deleteRationItem(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long productId) {
+        log.info("Deleting ration item");
+        rationService.deleteRationItem(user, productId);
+        ApiResponse<String> apiResponse = new ApiResponse<>("Ration item deleted successfully.");
         return ResponseEntity.ok(apiResponse);
     }
 

@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Entity
 @Data
 @NoArgsConstructor
@@ -20,5 +22,6 @@ public class RationItem {
     private Product product;
 
     private int quantity;
+    private BigDecimal totalQuantity;
 }
 

@@ -16,6 +16,7 @@ public class RationItemDTO {
     private String productImageUrl;
     private BigDecimal price;
     private Integer quantity;
+    private BigDecimal totalQuantity;
     private String unitLabel;
 }
 

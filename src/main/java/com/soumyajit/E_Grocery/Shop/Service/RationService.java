@@ -58,30 +58,32 @@ public class RationService {
                 .orElseGet(() -> {
                     RationList newList = RationList.builder()
                             .user(user)
-                            .items(new ArrayList<>())  // ✅ initialize empty list
+                            .items(new ArrayList<>())
                             .build();
                     return rationRepo.save(newList);
                 });
-
-        // ✅ Ensure the items list is initialized (in case it was not)
         if (list.getItems() == null) {
             list.setItems(new ArrayList<>());
         }
-
-        // Check if the product already exists in the list
         Optional<RationItem> existingItemOpt = list.getItems().stream()
                 .filter(i -> i.getProduct().getId().equals(dto.getProductId()))
                 .findFirst();
 
         if (existingItemOpt.isPresent()) {
-            // Update quantity
             RationItem existingItem = existingItemOpt.get();
-            existingItem.setQuantity(existingItem.getQuantity() + dto.getQuantity());
+            int updatedQuantity = existingItem.getQuantity() + dto.getQuantity();
+            existingItem.setQuantity(updatedQuantity);
+            BigDecimal totalQuantity = product.getUnitQuantity().multiply(BigDecimal.valueOf(updatedQuantity));
+            existingItem.setTotalQuantity(totalQuantity);
+
         } else {
-            // Add new item
+            int newQuantity = dto.getQuantity();
+            BigDecimal totalQuantity = product.getUnitQuantity().multiply(BigDecimal.valueOf(newQuantity));
+
             RationItem newItem = RationItem.builder()
                     .product(product)
-                    .quantity(dto.getQuantity())
+                    .quantity(newQuantity)
+                    .totalQuantity(totalQuantity)
                     .build();
             list.getItems().add(newItem);
         }
@@ -102,11 +104,32 @@ public class RationService {
             RationItem item = optionalItem.get();
 
             if (request.getQuantity() <= 0) {
-                list.getItems().remove(item); // optional: remove item if quantity is 0
+                list.getItems().remove(item);
             } else {
                 item.setQuantity(request.getQuantity());
+                BigDecimal unitQuantity = item.getProduct().getUnitQuantity();
+                BigDecimal totalQuantity = unitQuantity.multiply(BigDecimal.valueOf(request.getQuantity()));
+                item.setTotalQuantity(totalQuantity);
             }
 
+            rationRepo.save(list);
+        } else {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found in ration list.");
+        }
+    }
+
+
+    public void deleteRationItem(User user, Long productId) {
+        RationList list = rationRepo.findByUser(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ration list not found"));
+
+        Optional<RationItem> optionalItem = list.getItems().stream()
+                .filter(item -> item.getProduct().getId().equals(productId))
+                .findFirst();
+
+        if (optionalItem.isPresent()) {
+            RationItem item = optionalItem.get();
+            list.getItems().remove(item);
             rationRepo.save(list);
         } else {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found in ration list.");
@@ -128,8 +151,6 @@ public class RationService {
 
         List<RationItemDTO> itemDTOs = list.getItems().stream().map(item -> {
             Product p = item.getProduct();
-
-            // Always use original price (ignore discount)
             BigDecimal price = p.getUnitPrice();
 
             return new RationItemDTO(
@@ -139,7 +160,9 @@ public class RationService {
                     p.getImageUrl(),
                     price,
                     item.getQuantity(),
+                    item.getTotalQuantity(),
                     p.getUnitLabel()
+
             );
 
         }).collect(Collectors.toList());
@@ -162,8 +185,6 @@ public class RationService {
     public String checkoutRationList(User user) {
         RationList list = rationRepo.findByUser(user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ration list not found"));
-
-        // Ensure ownership check (although redundant since it's fetched by current user)
         if (!list.getUser().getId().equals(user.getId())) {
             throw new AccessDeniedException("You are not authorized to access this list.");
         }
@@ -173,6 +194,7 @@ public class RationService {
             ci.setCustomer(user);
             ci.setProduct(it.getProduct());
             ci.setQuantity(it.getQuantity());
+            ci.setTotalQuantity((it.getTotalQuantity()));
 
             // Use real-time price to avoid stale discount bugs
             BigDecimal pricePerUnit = it.getProduct().getUnitPrice();
@@ -185,7 +207,7 @@ public class RationService {
                 ci.setTotalPrice(BigDecimal.ZERO);
             }
 
-            ci.setTotalQuantity(BigDecimal.valueOf(it.getQuantity()));
+            ci.setTotalQuantity((it.getTotalQuantity()).multiply(BigDecimal.valueOf(quantity)));
             cartRepo.save(ci);
         });
 
@@ -203,7 +225,7 @@ public class RationService {
 
     @Transactional
     public void sendMonthlyRationEmails() {
-        List<RationList> lists = rationRepo.findAll(); // entity graph will handle the eager loading
+        List<RationList> lists = rationRepo.findAll();
         for (RationList list : lists) {
             if (list.getItems() != null && !list.getItems().isEmpty()) {
                 sendMonthlyRationEmail(list);
@@ -225,7 +247,7 @@ public class RationService {
 
             mailSender.send(msg);
         } catch (MessagingException e) {
-            e.printStackTrace(); // Optionally log this properly
+            e.printStackTrace();
         }
     }
 
