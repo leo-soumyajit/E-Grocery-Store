@@ -194,9 +194,7 @@ public class RationService {
             ci.setCustomer(user);
             ci.setProduct(it.getProduct());
             ci.setQuantity(it.getQuantity());
-            ci.setTotalQuantity((it.getTotalQuantity()));
-
-            // Use real-time price to avoid stale discount bugs
+            ci.setTotalQuantity(it.getTotalQuantity());
             BigDecimal pricePerUnit = it.getProduct().getUnitPrice();
             Integer quantity = it.getQuantity();
 
@@ -207,7 +205,6 @@ public class RationService {
                 ci.setTotalPrice(BigDecimal.ZERO);
             }
 
-            ci.setTotalQuantity((it.getTotalQuantity()).multiply(BigDecimal.valueOf(quantity)));
             cartRepo.save(ci);
         });
 
